@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>MUD Conformance Testing</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f8f9fa;
+            margin: 0;
+            padding: 20px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #222;
+            margin-bottom: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            box-shadow: 0px 2px 5px rgba(0,0,0,0.1);
+            margin-bottom: 40px;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 10px 15px;
+            text-align: left;
+        }
+
+        th {
+            background: #343a40;
+            color: white;
+            text-transform: uppercase;
+            font-size: 14px;
+        }
+
+        tr:nth-child(even) {
+            background: #f2f2f2;
+        }
+
+        tr:hover {
+            background: #e9ecef;
+        }
+
+        a {
+            text-decoration: none;
+            color: #007bff;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        .details {
+            background: white;
+            padding: 20px;
+            margin-bottom: 25px;
+            border-left: 5px solid #343a40;
+            box-shadow: 0px 2px 5px rgba(0,0,0,0.1);
+            transition: background-color 0.6s ease;
+        }
+
+        .details h2 {
+            margin-top: 0;
+            color: #343a40;
+        }
+
+        /* Highlight effect */
+        .highlight {
+            background-color: #fff3cd !important; /* light yellow */
+            border-left-color: #ffc107; /* golden border */
+        }
+    </style>
+</head>
+<body>
+    <h1>MUD Conformance Test Cases</h1>
+    <table>
+        <thead>
+            <tr>
+                <th>Test No.</th>
+                <th>Test Requirement</th>
+                <th>Mandatory/Optional</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr><td><a href="#MUD-1-1-1">MUD.1.1.1</a></td><td>Seeking MUD URL String – via DHCP requests, LLDP frames, and X.509 Certificates</td><td>Mandatory</td></tr>
+            <tr><td><a href="#MUD-1-1-2">MUD.1.1.2</a></td><td>Checking Consistency of Emitted MUD URL Strings</td><td>Mandatory</td></tr>
+            <tr><td><a href="#MUD-1-1-3">MUD.1.1.3</a></td><td>Validating MUD URL String</td><td>Mandatory</td></tr>
+            <tr><td><a href="#MUD-1-1-4">MUD.1.1.4</a></td><td>Verifying if a MUD file can be retrieved</td><td>Mandatory</td></tr>
+            <tr><td><a href="#MUD-1-1-5">MUD.1.1.5</a></td><td>Verifying the signature of the MUD file – method of signature and the content</td><td>Mandatory</td></tr>
+            <tr><td><a href="#MUD-1-1-6">MUD.1.1.6</a></td><td>Verifying the Content Type and Certificates in Digital Signature of MUD File</td><td>Mandatory</td></tr>
+            <tr><td><a href="#MUD-1-1-7">MUD.1.1.7</a></td><td>Verifying Integrity of Digital Signature for MUD File</td><td>Mandatory</td></tr>
+            <tr><td><a href="#MUD-1-1-8">MUD.1.1.8</a></td><td>Verifying Certificate Validity of MUD File Signature</td><td>Mandatory</td></tr>
+            <tr><td><a href="#MUD-1-2-1">MUD.1.2.1</a></td><td>Verifying MUD File Format</td><td>Mandatory</td></tr>
+            <tr><td><a href="#MUD-1-2-2">MUD.1.2.2</a></td><td>Verifying the encoding method of the MUD file</td><td>Mandatory</td></tr>
+            <tr><td><a href="#MUD-1-2-3">MUD.1.2.3</a></td><td>Verifying the usage of nodes in the MUD file</td><td>Mandatory</td></tr>
+            <tr><td><a href="#MUD-1-2-4">MUD.1.2.4</a></td><td>Verifying the declaration of extensions in the MUD file – declared and undeclared extensions</td><td>Mandatory</td></tr>
+            <tr><td><a href="#MUD-1-2-5">MUD.1.2.5</a></td><td>Verifying extensions are standardized by IETF standards</td><td>Mandatory</td></tr>
+            <tr><td><a href="#MUD-1-3-1">MUD.1.3.1</a></td><td>Verifying the Direction of Individual Policies in the MUD file – direction and position</td><td>Mandatory</td></tr>
+            <tr><td><a href="#MUD-1-3-2">MUD.1.3.2</a></td><td>Verifying the Node cache-validity in MUD File</td><td>Mandatory</td></tr>
+        <tr><td><a href="#MUD-1-3-3">MUD.1.3.3</a></td><td>Verifying the Node system info in the MUD file</td><td>Mandatory</td></tr>
+        <tr><td><a href="#MUD-1-3-4">MUD.1.3.4</a></td><td>Verifying the optional fields in the MUD file</td><td>Mandatory</td></tr>
+        <tr><td><a href="#MUD-1-4-1">MUD.1.4.1</a></td><td>Verifying the format of local addresses in the MUD file</td><td>Optional</td></tr>
+        <tr><td><a href="#MUD-1-4-2">MUD.1.4.2</a></td><td>Verifying URLs of Controllers in MUD File</td><td>Optional</td></tr>
+        <tr><td><a href="#MUD-1-5-1">MUD.1.5.1</a></td><td>Verifying the usage of ACL leaf nodes in the MUD file</td><td>Mandatory</td></tr>
+        <tr><td><a href="#MUD-1-5-2">MUD.1.5.2</a></td><td>Verifying ACL policies in the MUD file – inbound and/or outbound</td><td>Mandatory</td></tr>
+        <tr><td><a href="#MUD-1-5-3">MUD.1.5.3</a></td><td>Verifying the usage of domain names in the ACEs</td><td>Mandatory</td></tr>
+        <tr><td><a href="#MUD-1-5-4">MUD.1.5.4</a></td><td>Verifying the consistency of policies in the ACLs – from-device and to-device</td><td>Mandatory</td></tr>
+        <tr><td><a href="#MUD-1-5-5">MUD.1.5.5</a></td><td>Verifying usage of “direction-initiated” for ACEs in MUD file</td><td>Mandatory</td></tr>
+        <tr><td><a href="#MUD-1-5-6">MUD.1.5.6</a></td><td>Verifying the actions of ACEs in the MUD File</td><td>Mandatory</td></tr>
+        <tr><td><a href="#MUD-1-5-7">MUD.1.5.7</a></td><td>Verifying the count of ACEs in the MUD file</td><td>Mandatory</td></tr>
+        </tbody>
+    </table>
+
+    <!-- Details Section -->
+    <div id="MUD-1-1-1" class="details">
+        <h2>MUD.1.1.1 – Seeking MUD URL String</h2>
+        <p><strong>Purpose:</strong> To verify the ability of DUT to emit a MUD URL string.</p>
+        <p><strong>Functionality Tag:</strong> Mandatory</p>
+        <p><strong>Reference:</strong></p>
+        <ul>
+            <li>[MUD] – Section 1.5, Section 10, Section 11 and Section 12</li>
+            <li>[Internet X.509 Public Key Infrastructure Certificate and Certificate Revocation List (CRL) Profile (RFC5280)] – Section 4.2.2.2</li>
+        </ul>
+        <p><strong>Test Setup:</strong> Common Test Topology is performed.</p>
+        
+        <h3>Procedure</h3>
+    
+        <h4>Part A: DHCP requests</h4>
+        <table border="1" cellpadding="5" cellspacing="0" style="border-collapse: collapse; width: 100%;">
+            <thead>
+                <tr>
+                    <th>Step</th>
+                    <th>Action</th>
+                    <th>Expected Behavior</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>1</td>
+                    <td>Capture DHCPv4 or DHCPv6 packets sent by DUT and seek a MUD URL for option code 161 in DHCPv4 requests or option code 112 in DHCPv6 requests.</td>
+                    <td>The MUD URL string can be extracted from DHCPv4 or DHCPv6 requests given the corresponding DHCP option code.</td>
+                </tr>
+            </tbody>
+        </table>
+    
+        <h4>Part B: LLDP frames</h4>
+        <table border="1" cellpadding="5" cellspacing="0" style="border-collapse: collapse; width: 100%;">
+            <thead>
+                <tr>
+                    <th>Step</th>
+                    <th>Action</th>
+                    <th>Expected Behavior</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>2</td>
+                    <td>Capture LLDP frames sent by DUT and verify they contain the TLV Type=127, OUI=00 00 5E, subtype=1 and the MUD string as a list of octets.</td>
+                    <td>The MUD URL string can be decoded by extracting octet values in the LLDP frames from DUT. The expected format of LLDP packets is shown as follows.</td>
+                </tr>
+            </tbody>
+        </table>
+    
+        <h4>Part C: X.509 Certificates</h4>
+        <table border="1" cellpadding="5" cellspacing="0" style="border-collapse: collapse; width: 100%;">
+            <thead>
+                <tr>
+                    <th>Step</th>
+                    <th>Action</th>
+                    <th>Expected Behavior</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>3</td>
+                    <td>Capture a certificate presented by DUT (e.g., via TLS protocol), look for an X.509 non-critical extension, and verify if it contains a URL.</td>
+                    <td>The MUD URL string can be extracted from the X.509 non-critical extension of the retrieved certificate.</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    
+
+    <div id="MUD-1-1-2" class="details">
+        <h2>MUD.1.1.2 – Checking Consistency of Emitted MUD URL Strings</h2>
+        <p><strong>Purpose:</strong> Verify that the MUD URL strings emitted by DUT are identical.</p>
+  <p><strong>Reference:</strong><br> ● [MUD] – Section 10.1</p>
+  <p><strong>Test Setup:</strong> Common Test Topology is performed.</p>
+
+  <p><strong>Procedure:</strong></p>
+  <p>Part A: Compare the extracted MUD URL strings</p>
+  <table border="1" cellspacing="0" cellpadding="5">
+    <tr>
+      <th>Step</th>
+      <th>Action</th>
+      <th>Expected Behavior</th>
+    </tr>
+    <tr>
+      <td>1</td>
+      <td>Capture the generated DHCP requests (v4 and/or v6), LLDP frames, and X.509 certificates to check the emitted MUD URLs.</td>
+      <td>The MUD URL strings extracted from various packet types must be identical.</td>
+    </tr>
+  </table>
+
+  <p><strong>Possible Problems:</strong> None.</p>
+    </div>
+
+    <div id="MUD-1-1-3" class="details">
+        <h2>MUD.1.1.3 – Validating MUD URL String</h2>
+        <p><strong>Purpose:</strong> Verify whether the emitted MUD URL is in a valid format.</p>
+
+  <p><strong>Reference:</strong></p>
+  <ul>
+    <li>[MUD] – Section 1.5, Section 6, Section 10, Section 11, and Section 12</li>
+    <li>[Uniform Resource Identifier (URI): Generic Syntax (RFC3986)]</li>
+    <li>[Internationalized Resource Identifiers (IRIs) (RFC3987)] – Section 3.1</li>
+    <li>[Internet X.509 Public Key Infrastructure Certificate and Certificate Revocation List (CRL) Profile (RFC5280)] – Section 7.4</li>
+  </ul>
+
+  <p><strong>Test Setup:</strong> Common Test Topology is performed.</p>
+
+  <h3>Procedure</h3>
+  <h4>Part A: Verify the MUD URL string is valid</h4>
+
+  <table border="1" cellpadding="5" cellspacing="0" style="border-collapse:collapse; width:100%;">
+    <thead>
+      <tr>
+        <th>Step</th>
+        <th>Action</th>
+        <th>Expected Behavior</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>1</td>
+        <td>Test whether the MUD URL string starts with “https” instead of “http”.</td>
+        <td>The MUD URL string must start with “https”.</td>
+      </tr>
+      <tr>
+        <td>2</td>
+        <td>Check the length of the MUD URL string is less than a threshold.</td>
+        <td>
+          The length of the MUD URL string must not exceed <strong>255 octets</strong> for DHCP (v4 and/or v6) requests and certificates.
+          Additionally, the length must not exceed <strong>253 octets</strong> for LLDP frames.
+        </td>
+      </tr>
+      <tr>
+        <td>3</td>
+        <td>
+          Check whether the URL string has the following structure:<br>
+          <code>https://domainName/&lt;string&gt;/IRIs</code><br>
+          where <code>&lt;string&gt;</code> only contains legal characters and <code>domainName</code> is a valid DNS name (e.g., ends with “.com”).
+          The <em>IRIs</em> represents the descriptor of the resource (i.e., the name of the MUD file).
+        </td>
+        <td>The MUD URL string is expected to adhere to the standard structure.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p><strong>Possible Problems:</strong> None.</p>
+</div>
+    </div>
+
+    <div id="MUD-1-1-4" class="details">
+        <h2>MUD.1.1.4 – Verifying MUD File Retrieval</h2>
+        <p><strong>Purpose:</strong> Verify if a MUD file can be retrieved from the specified HTTPS server using the emitted MUD URL.</p>
+    <p><strong>Functionality Tag:</strong> Mandatory</p>
+    <p><strong>Reference:</strong><br>
+        ● [MUD] – Section 1.6
+    </p>
+    <p><strong>Test Setup:</strong> Common Test Topology is performed.</p>
+    
+    <h4>Procedure:</h4>
+    <p><em>Part A: Check whether the MUD file can be retrieved</em></p>
+    <table border="1" cellpadding="6" cellspacing="0">
+        <thead>
+            <tr>
+                <th>Step</th>
+                <th>Action</th>
+                <th>Expected Behavior</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>1</td>
+                <td>
+                    Using the GET method, verify whether the MUD file can be retrieved 
+                    from the HTTPS server specified by the MUD URL.
+                </td>
+                <td>
+                    The GET request for the MUD URL must be successful.
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    
+    <p><strong>Possible Problems:</strong> None.</p>
+    </div>
+
+    <div id="MUD-1-1-5" class="details">
+        <h2>Test MUD.1.1.5: Verifying Presence and Structure of Digital Signature of MUD File</h2>
+  
+  <p><strong>Purpose:</strong> Verify that the retrieved MUD file contains a digital signature and is correctly signed using Cryptographic Message Syntax (CMS).</p>
+  
+  <p><strong>Functionality Tag:</strong> Mandatory</p>
+  
+  <p><strong>Reference:</strong></p>
+  <ul>
+    <li>[MUD] – Section 13.1 and Section 13.2</li>
+    <li>[Cryptographic Message Syntax (CMS) (RFC 5652)]</li>
+  </ul>
+  
+  <p><strong>Test Setup:</strong> Common Test Topology is performed.</p>
+  
+  <h3>Procedure:</h3>
+  <p><strong>Part A:</strong> Verify the signature method of the MUD file</p>
+  <table border="1" cellpadding="8" cellspacing="0" width="100%">
+    <thead>
+      <tr>
+        <th>Step</th>
+        <th>Action</th>
+        <th>Expected Behavior</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>1</td>
+        <td>Retrieve the digital signature by obtaining the value of “mud-signature” within the MUD file.</td>
+        <td>The retrieved MUD file should have the node “mud-signature” and the signature file can be retrieved from its value.</td>
+      </tr>
+      <tr>
+        <td>2</td>
+        <td>Check whether the MUD file is signed using DER-encoded CMS, a standard way to digitally sign and encrypt data.</td>
+        <td>The signature file is a binary object with file type as “.p7s” and in DER-encoded format.</td>
+      </tr>
+    </tbody>
+  </table>
+  
+  <h3>Possible Problems:</h3>
+  <p>None.</p>
+    </div>
+
+    <div id="MUD-1-1-6" class="details">
+        <h2>MUD.1.1.6 – Verifying Content Type and Certificates</h2>
+        <p><strong>Purpose:</strong> Verify that content type and certificates within the digital signature of the retrieved MUD file are correct and valid.</p>
+    <p><strong>Reference:</strong> [MUD] – Section 11</p>
+    <p><strong>Test Setup:</strong> Common Test Topology is performed.</p>
+
+    <h4>Procedure:</h4>
+    <p><strong>Part A: Verify the certificates within the signature</strong></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Step</th>
+          <th>Action</th>
+          <th>Expected Behavior</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>1</td>
+          <td>Extract the signing certificates in the signature file.</td>
+          <td>Certificates must exist within the signature file.</td>
+        </tr>
+        <tr>
+          <td>2</td>
+          <td>Examine the Key Usage Extension pattern within the signing certificate to confirm whether the bit “digitalSignature” is set to 0.</td>
+          <td>The bit “digitalSignature” must be set to 0 in the Key Usage Extension pattern.</td>
+        </tr>
+        <tr>
+          <td>3</td>
+          <td>Check whether the “id-pe mudsigner” extension is present in the X.509 section, and verify if its content matches the information within the subject field of the certificate.</td>
+          <td>The content of subject in the certificate of the signature must match the content of the “id-pe-mudsigner” extension in the retrieved X.509 certificate.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p><strong>Part B: Verify the content type of the signature</strong></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Step</th>
+          <th>Action</th>
+          <th>Expected Behavior</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>4</td>
+          <td>Verify if the content-type “id ct-mud” is used as the content type for the signed data.</td>
+          <td>The content-type is expected to have the object identifier “id-ct” equal to 41.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p><strong>Possible Problems:</strong> None.</p>
+    </div>
+
+    <div id="MUD-1-1-7" class="details">
+        <h2>MUD.1.1.7 – Verifying Integrity of Digital Signature</h2>
+        <p><strong>Purpose:</strong> Verify the validity of the digital signature associated with the retrieved MUD file to ensure its integrity and authenticity, thereby confirming that the file has not been tampered with.</p>
+    <p><strong>Reference:</strong></p>
+    <ul>
+      <li>[MUD] – Section 13.1, Section 13.2 and Section 11</li>
+      <li>[Cryptographic Message Syntax (CMS) (RFC 5652)]</li>
+    </ul>
+    <p><strong>Test Setup:</strong> Common Test Topology is performed.</p>
+
+    <h4>Procedure</h4>
+
+    <h5>Part A: Verify the integrity of digital signature</h5>
+    <table>
+      <thead>
+        <tr>
+          <th>Step</th>
+          <th>Action</th>
+          <th>Expected Behavior</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>1</td>
+          <td>Extract the encrypted digital signature and the signer’s information, including a public key, a hash function, and a message digest (MD).</td>
+          <td></td>
+        </tr>
+        <tr>
+          <td>2</td>
+          <td>Use the signer’s public key and decrypt the digital signature to retrieve the unencrypted hash value (H1).</td>
+          <td></td>
+        </tr>
+        <tr>
+          <td>3</td>
+          <td>Compare the unencrypted hash value with the message digest (MD).</td>
+          <td>The unencrypted hash value (H1) must match the signer’s message digest (MD).</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h5>Part B: Verify the integrity of MUD file</h5>
+    <table>
+      <thead>
+        <tr>
+          <th>Step</th>
+          <th>Action</th>
+          <th>Expected Behavior</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>4</td>
+          <td>Calculate the hash value (H0) of the retrieved MUD file using the signer’s hash function.</td>
+          <td></td>
+        </tr>
+        <tr>
+          <td>5</td>
+          <td>Compare the calculated hash value (H0) with the signer’s message digest (MD).</td>
+          <td>The hash value of the MUD file (H0) must match the signer’s message digest (MD).</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p><strong>Possible Problems:</strong> None.</p>
+    </div>
+
+    <div id="MUD-1-1-8" class="details">
+        <h2>MUD.1.1.8 – Verifying Certificate Validity</h2>
+        <p>Validates that the signing certificate is not expired, revoked, or untrusted.</p>
+    </div>
+
+    <div id="MUD-1-2-1" class="details">
+        <h2>MUD.1.2.1 – Verifying MUD File Format</h2>
+        <p>Checks that the MUD file follows the correct JSON format as specified in the RFC.</p>
+    </div>
+
+    <div id="MUD-1-2-2" class="details">
+        <h2>MUD.1.2.2 – Verifying Encoding Method</h2>
+        <p>Ensures that the MUD file uses UTF-8 encoding or another acceptable format.</p>
+    </div>
+
+    <div id="MUD-1-2-3" class="details">
+        <h2>MUD.1.2.3 – Verifying Node Usage</h2>
+        <p>Validates that only allowed nodes are used in the MUD file.</p>
+    </div>
+
+    <div id="MUD-1-2-4" class="details">
+        <h2>MUD.1.2.4 – Verifying Extension Declaration</h2>
+        <p>Ensures that any declared extensions are explicitly marked and undeclared extensions are not used.</p>
+    </div>
+
+    <div id="MUD-1-2-5" class="details">
+        <h2>MUD.1.2.5 – Verifying Standardized Extensions</h2>
+        <p>Checks that extensions used are standardized by IETF and not vendor-specific unless declared.</p>
+    </div>
+
+    <div id="MUD-1-3-1" class="details">
+        <h2>MUD.1.3.1 – Verifying Policy Direction</h2>
+        <p>Validates that policy directions (to/from device) and positions are correctly defined in the MUD file.</p>
+    </div>
+    <div class="details" id="MUD-1-3-2">
+        <h2>MUD.1.3.2</h2>
+        <p><b>Description:</b> Verifying the Node cache-validity in MUD File.  
+  
+      </div>
+    <div class="details" id="MUD-1-3-3">
+        <h2>MUD.1.3.3</h2>
+        <p><b>Description:</b> Verifying the Node system info in the MUD file.  
+
+      </div>
+      
+      <div class="details" id="MUD-1-3-4">
+        <h2>MUD.1.3.4</h2>
+        <p><b>Description:</b> Verifying the optional fields in the MUD file.  
+
+      </div>
+      
+      <div class="details" id="MUD-1-4-1">
+        <h2>MUD.1.4.1</h2>
+        <p><b>Description:</b> Verifying the format of local addresses in the MUD file.  
+
+      </div>
+      
+      <div class="details" id="MUD-1-4-2">
+        <h2>MUD.1.4.2</h2>
+        <p><b>Description:</b> Verifying URLs of Controllers in MUD File.  
+    
+      </div>
+      
+      <div class="details" id="MUD-1-5-1">
+        <h2>MUD.1.5.1</h2>
+        <p><b>Description:</b> Verifying the usage of ACL leaf nodes in the MUD file.  
+        
+      </div>
+      
+      <div class="details" id="MUD-1-5-2">
+        <h2>MUD.1.5.2</h2>
+        <p><b>Description:</b> Verifying ACL policies in the MUD file – inbound/outbound.  
+        
+      </div>
+      
+      <div class="details" id="MUD-1-5-3">
+        <h2>MUD.1.5.3</h2>
+        <p><b>Description:</b> Verifying the usage of domain names in the ACEs.  
+        
+      </div>
+      
+      <div class="details" id="MUD-1-5-4">
+        <h2>MUD.1.5.4</h2>
+        <p><b>Description:</b> Verifying the consistency of policies in the ACLs – from-device/to-device.  
+       
+      </div>
+      
+      <div class="details" id="MUD-1-5-5">
+        <h2>MUD.1.5.5</h2>
+        <p><b>Description:</b> Verifying usage of “direction-initiated” for ACEs in MUD file.  
+        
+      </div>
+      
+      <div class="details" id="MUD-1-5-6">
+        <h2>MUD.1.5.6</h2>
+        <p><b>Description:</b> Verifying the actions of ACEs in the MUD File.  
+       
+      </div>
+      
+      <div class="details" id="MUD-1-5-7">
+        <h2>MUD.1.5.7</h2>
+        <p><b>Description:</b> Verifying the count of ACEs in the MUD file.  
+        
+      </div>
+
+    <script>
+        // Add highlight effect when clicking on a test case link
+        document.querySelectorAll("a[href^='#']").forEach(link => {
+            link.addEventListener("click", function(event) {
+                // remove existing highlights
+                document.querySelectorAll(".details").forEach(div => div.classList.remove("highlight"));
+
+                // get target id
+                const targetId = this.getAttribute("href").substring(1);
+                const target = document.getElementById(targetId);
+
+                if (target) {
+                    // add highlight
+                    target.classList.add("highlight");
+
+                    // remove highlight after 2 seconds
+                    setTimeout(() => {
+                        target.classList.remove("highlight");
+                    }, 2000);
+                }
+            });
+        });
+    </script>
+</body>
+</html>
