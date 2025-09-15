@@ -10,5 +10,11 @@ class IoTDevice(models.Model):
     last_seen = models.DateTimeField(auto_now=True)
     mud_compliant = models.BooleanField(default=False)  # True if device is MUD-compliant
     mud_url = models.URLField(blank=True, null=True)
+    testcases_passed = models.IntegerField(default=0)
+    testcases_failed = models.IntegerField(default=0)
     def __str__(self):
         return f"{self.name} ({self.ip_address})"
+
+    @property
+    def testcases_total(self):
+        return self.testcases_passed + self.testcases_failed

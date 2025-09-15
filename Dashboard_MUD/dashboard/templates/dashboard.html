@@ -1,0 +1,25 @@
+<div class="section-title">Testcase Results</div>
+<table>
+    <tr>
+        <th>Name</th>
+        <th>MAC</th>
+        <th>IP</th>
+        <th>Testcases Passed</th>
+        <th>Testcases Failed</th>
+        <th>Total</th>
+    </tr>
+    {% for device in testcase_devices %}
+    <tr>
+        <td>{{ device.name }}</td>
+        <td>{{ device.mac_address }}</td>
+        <td>{{ device.ip_address }}</td>
+        <td>{{ device.testcases_passed }}</td>
+        <td>{{ device.testcases_failed }}</td>
+        <td>{{ device.testcases_total }}</td>
+    </tr>
+    {% empty %}
+    <tr>
+        <td colspan="6">No reachable MUD-compliant devices</td>
+    </tr>
+    {% endfor %}
+</table>

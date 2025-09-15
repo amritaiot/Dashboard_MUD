@@ -13,6 +13,7 @@ from django.http import JsonResponse
 import json
 from django.shortcuts import render
 from .scanner import fetch_and_save_devices
+from .compliance_test import run_device_test
 
 def active_devices_view(request):
     devices = fetch_and_save_devices()
@@ -26,7 +27,30 @@ def home(request):
     
     # Always read the current devices from DB
     devices = IoTDevice.objects.all()
-    return render(request, 'home.html', {'devices': devices})
+    testcase_devices = IoTDevice.objects.filter(state="REACHABLE", mud_compliant=True)
+    return render(request, 'home.html', {
+        'devices': devices,
+        "testcase_devices": testcase_devices})
 
 def testcase_view(request):
     return render(request, "testcases.html")
+
+'''def dashboard(request):
+    devices = IoTDevice.objects.all()
+    testcase_devices = IoTDevice.objects.filter(state="ON", mud_compliant=True)
+    return render(request, "dashboard.html", {
+        "devices": devices,
+        "testcase_devices": testcase_devices
+    })'''
+
+def run_test_view(request):
+    mac = request.GET.get("mac")
+    #pcapfile = request.GET.get("pcapfile", "capture.pcap")  # default pcap if not sent
+
+    if not mac:
+        return JsonResponse({"error": "MAC address missing"}, status=400)
+
+    #result = run_device_test(mac, pcapfile)
+    result = run_device_test(mac)
+    return JsonResponse(result)
+

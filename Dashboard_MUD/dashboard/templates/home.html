@@ -256,6 +256,12 @@
             color: #000;
             border: 1px solid #aaa;
         }
+        #trafficChart {
+    max-width: 500px;
+    max-height: 500px;
+    display: block;
+    margin: 0 auto;
+}
 
     </style>
 </head>
@@ -310,14 +316,41 @@
             <button type="submit" name="rescan">Scan Network</button>
         </form>
         
-        <form id="triggerForm">
-            <button type="submit">Test Behavior</button>
-        </form>
-  
+      
         <form action="{% url 'testcases' %}">
             <button type="submit">Test Cases</button>
         </form>
     </div>
+    <div class="section-title">Testcase Results</div>
+    <table>
+        <tr>
+            <th>Name</th>
+            <th>MAC</th>
+            <th>IP</th>
+            <th>Testcases Passed</th>
+            <th>Testcases Failed</th>
+            <th>Total</th>
+            <th>Action</th> <!-- New Column -->
+        </tr>
+        {% for device in testcase_devices %}
+        <tr>
+            <td>{{ device.name }}</td>
+            <td>{{ device.mac_address }}</td>
+            <td>{{ device.ip_address }}</td>
+            <td>{{ device.testcases_passed }}</td>
+            <td>{{ device.testcases_failed }}</td>
+            <td>{{ device.testcases_total }}</td>
+            <td>
+                <button class="test-button" onclick="runTest('{{ device.mac_address }}')">Run Test</button>
+            </td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="7">No reachable MUD-compliant devices</td>
+        </tr>
+        {% endfor %}
+    </table>
+
     <div class="log-box-wrapper">
     <div class="log-buttons">
         <button onclick="showLog('traffic')" class="log-button">Recent Traffic Flow</button>
@@ -465,7 +498,7 @@
                 },
                 title: {
                     display: true,
-                    text: 'Device Misbehavior',
+                    text: 'MUD capable/Non-MUD capable Devices',
                     color: '#fff'
                 }
             }
@@ -497,8 +530,9 @@ const trafficLabels = JSON.parse('{{ traffic_labels|escapejs }}');
                 },
                 title: {
                     display: true,
-                    text: 'Traffic Ratio',
-                    color: '#fff'
+                    text: 'Test cases passed/failed',
+                    color: '#fff',
+                    font: { size: 18, weight: 'bold' }
                 }
             }
         }
@@ -512,6 +546,28 @@ const trafficLabels = JSON.parse('{{ traffic_labels|escapejs }}');
                 ? "Dark Mode" 
                 : "Light Mode";
         });
+
+
+        function runTest(mac) {
+    //const pcapfile = "capture.pcap"; // or dynamically select per device
+    //fetch(`/run_test/?mac=${mac}&pcapfile=${pcapfile}`)
+    fetch(`/run_test/?mac=${mac}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                alert("Error: " + data.error);
+            } else {
+                const row = document.querySelector(`tr[data-mac='${mac}']`);
+                if (row) {
+                    row.querySelector(".passed").textContent = data.testcases_passed;
+                    row.querySelector(".failed").textContent = data.testcases_failed;
+                    row.querySelector(".total").textContent = data.total;
+                }
+                window.location.reload();
+            }
+        })
+        .catch(err => console.error(err));
+}
     </script>
 
 </body>

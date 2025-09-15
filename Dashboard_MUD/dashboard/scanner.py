@@ -47,37 +47,41 @@ def fetch_and_save_devices():
             device_data["state"] = line.split(":", 1)[1].strip()
         elif line.startswith("-" * 37):
             if device_data:
-                mac = device_data.get("mac")
-                active_macs.add(mac)
-                mud_url = mud_urls.get(mac, "")  # Get corresponding MUD URL if exists
-                
-                mud_compliant = False
-                
-                if mud_url:
+                if device_data.get("host") != "*":
+                    mac = device_data.get("mac")
+                    active_macs.add(mac)
+                    mud_url = mud_urls.get(mac, "")
+                    mud_compliant = False
+                    if mud_url:
                     
-                    try:
-                        check_response = requests.get(f"{check_mud_api}?mud_url={mud_url}", timeout=5)
+                        try:
+                            check_response = requests.get(f"{check_mud_api}?mud_url={mud_url}", timeout=5)
                       
-                        if check_response.status_code == 200:
-                            data = check_response.json()  # parse JSON
-                            if data.get("exists") is True:
-                                mud_compliant = True
-                    except requests.RequestException as e:
-                        print(f"Error checking MUD for {mac}: {e}")
+                            if check_response.status_code == 200:
+                                data = check_response.json()  # parse JSON
+                                if data.get("exists") is True:
+                                    mud_compliant = True
+                        except requests.RequestException as e:
+                            print(f"Error checking MUD for {mac}: {e}")
                 
-                obj, created = IoTDevice.objects.update_or_create(
-                    ip_address=device_data.get("ip"),
-                    defaults={
-                        "mac_address": mac,
-                        "name": device_data.get("host"),
-                        "state": device_data.get("state"),
-                        "mud_url": mud_url,
-                        "mud_compliant": mud_compliant,
-                    },
-                )
-                devices.append(obj)
-            device_data = {}
+                    obj, created = IoTDevice.objects.update_or_create(
+                        ip_address=device_data.get("ip"),
+                        defaults={
+                            "mac_address": mac,
+                            "name": device_data.get("host"),
+                            "state": device_data.get("state"),
+                            "mud_url": mud_url,
+                            "mud_compliant": mud_compliant,
+                        },
+                    )
+                    devices.append(obj)
+                device_data = {}
 
+                
+      
+                
+                
+                
     # Handle last device if file does not end with separator
     if device_data:
         mac = device_data.get("mac")
