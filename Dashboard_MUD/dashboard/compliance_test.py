@@ -77,6 +77,7 @@ def run_device_test(device_mac):
     #if mud_file_path:
     #results = run_checks(device.mud_url, mud_file_path)
     results = run_checks()
+    print(results)
     for key, value in results.items():
         if key.endswith("_valid"):
             if value is True:
