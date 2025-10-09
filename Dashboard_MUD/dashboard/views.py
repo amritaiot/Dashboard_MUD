@@ -14,7 +14,8 @@ import json
 from django.shortcuts import render
 from .scanner import fetch_and_save_devices
 from .compliance_test import run_device_test
-
+from django.http import JsonResponse
+from django.core.serializers.json import DjangoJSONEncoder
 def active_devices_view(request):
     devices = fetch_and_save_devices()
     devices = IoTDevice.objects.all().order_by("ip")
@@ -54,3 +55,13 @@ def run_test_view(request):
     result = run_device_test(mac)
     return JsonResponse(result)
 
+def device_testcases(request, mac):
+    device = IoTDevice.objects.get(mac_address=mac)
+    testcases = device.testcase_set.all()
+    data = [{
+        "test_case_number": t.number,
+        "test_case_name": t.name,
+        "passed": t.passed,
+        "message": t.message
+    } for t in testcases]
+    return JsonResponse(data, safe=False)

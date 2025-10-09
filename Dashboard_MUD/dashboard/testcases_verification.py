@@ -466,6 +466,321 @@ def check_controller_urls(mud_data):
     
     return results
 
+
+# ===============================
+# Test Case 10: 
+# ===============================
+# Allowed URNs
+def test_acl_attributes(mud_data):
+    """
+    Test Case 9: Verify that the ACL leaf nodes include required attributes:
+    - 'name' of the ACL
+    - 'type'
+    - 'name' of the ACEs
+    - TCP/UDP source and destination port information (if applicable)
+    """
+
+    results = {"status": "PASS", "details": []}
+
+    try:
+        acls = mud_data.get("ietf-access-control-list:acls", {}).get("acl", [])
+        if not acls:
+            results["status"] = "FAIL"
+            results["details"].append("No ACL entries found in the MUD file.")
+            return results
+
+        for acl in acls:
+            acl_name = acl.get("name")
+            acl_type = acl.get("type")
+            aces = acl.get("aces", {}).get("ace", [])
+
+            # Check ACL-level attributes
+            if not acl_name or not acl_type:
+                results["status"] = "FAIL"
+                results["details"].append(f"ACL missing 'name' or 'type': {acl}")
+                continue
+
+            for ace in aces:
+                ace_name = ace.get("name")
+                matches = ace.get("matches", {})
+
+                if not ace_name:
+                    results["status"] = "FAIL"
+                    results["details"].append(f"ACE missing 'name' under ACL: {acl_name}")
+
+                # Check for TCP/UDP port information if applicable
+                protocol = matches.get("protocol")
+                tcp = matches.get("tcp", {})
+                udp = matches.get("udp", {})
+
+                if protocol in [6, "tcp"]:
+                    src_port = tcp.get("source-port-range")
+                    dst_port = tcp.get("destination-port-range")
+                    if not (src_port or dst_port):
+                        results["status"] = "FAIL"
+                        results["details"].append(
+                            f"TCP ACE '{ace_name}' under ACL '{acl_name}' missing source/destination ports."
+                        )
+
+                elif protocol in [17, "udp"]:
+                    src_port = udp.get("source-port-range")
+                    dst_port = udp.get("destination-port-range")
+                    if not (src_port or dst_port):
+                        results["status"] = "FAIL"
+                        results["details"].append(
+                            f"UDP ACE '{ace_name}' under ACL '{acl_name}' missing source/destination ports."
+                        )
+
+        if results["status"] == "PASS":
+            results["details"].append("All ACLs contain required attributes and port definitions.")
+
+    except Exception as e:
+        results["status"] = "ERROR"
+        results["details"].append(f"Error while verifying ACL attributes: {str(e)}")
+
+    return results
+
+
+def check_ace_direction_policies(mud_data):
+    """
+    Test Case 12:
+    Verify that each ACE policy in the MUD file explicitly defines rules 
+    for either inbound or outbound traffic relative to the DUT.
+    """
+    results = {"status": "PASS", "details": []}
+
+    try:
+        acls = []
+        # Collect ACLs from both from-device and to-device policies
+        if "from-device-policy" in mud_data:
+            acls.extend(mud_data["from-device-policy"].get("access-lists", []))
+        if "to-device-policy" in mud_data:
+            acls.extend(mud_data["to-device-policy"].get("access-lists", []))
+
+        if not acls:
+            results["status"] = "FAIL"
+            results["details"].append("No ACLs found in MUD file.")
+            return results
+
+        for acl in acls:
+            acl_name = acl.get("name", "")
+            if not acl_name:
+                results["status"] = "FAIL"
+                results["details"].append("An ACL entry is missing the 'name' attribute.")
+                continue
+
+            # Check if ACL name indicates direction (contains 'from' or 'to')
+            if not ("from" in acl_name.lower() or "to" in acl_name.lower()):
+                results["status"] = "FAIL"
+                results["details"].append(f"ACL '{acl_name}' does not specify direction (missing 'from' or 'to').")
+
+        if results["status"] == "PASS":
+            results["details"].append("All ACLs correctly define direction (inbound/outbound).")
+
+    except Exception as e:
+        results["status"] = "FAIL"
+        results["details"].append(f"Error while checking ACE directions: {str(e)}")
+
+    return results
+
+
+def check_dnsname_endpoints(mud_data):
+    """
+    Test Case 13:
+    Verify that ACEs with 'ietf-acldns:src-dnsname' and 'ietf-acldns:dst-dnsname'
+    specify valid domain names (not IP addresses).
+    """
+    results = {"status": "PASS", "details": []}
+
+    # Regular expressions for validation
+    domain_pattern = re.compile(
+        r"^(?=.{1,253}$)(?!-)[A-Za-z0-9-]{1,63}(?<!-)"
+        r"(\.(?!-)[A-Za-z0-9-]{1,63}(?<!-))*(\.[A-Za-z]{2,})$"
+    )
+    ipv4_pattern = re.compile(r"^\d{1,3}(\.\d{1,3}){3}$")
+    ipv6_pattern = re.compile(r"^([0-9a-fA-F:]+)$")
+
+    try:
+        acls = []
+        if "from-device-policy" in mud_data:
+            acls.extend(mud_data["from-device-policy"].get("access-lists", []))
+        if "to-device-policy" in mud_data:
+            acls.extend(mud_data["to-device-policy"].get("access-lists", []))
+
+        for acl in acls:
+            aces = acl.get("aces", [])
+            for ace in aces:
+                matches = []
+                src_dns = ace.get("ietf-acldns:src-dnsname")
+                dst_dns = ace.get("ietf-acldns:dst-dnsname")
+
+                if src_dns:
+                    matches.append(("src", src_dns))
+                if dst_dns:
+                    matches.append(("dst", dst_dns))
+
+                for direction, dnsname in matches:
+                    if ipv4_pattern.match(dnsname) or ipv6_pattern.match(dnsname):
+                        results["status"] = "FAIL"
+                        results["details"].append(f"ACE {ace.get('name', '')} has invalid {direction}-dnsname (IP address found): {dnsname}")
+                    elif not domain_pattern.match(dnsname):
+                        results["status"] = "FAIL"
+                        results["details"].append(f"ACE {ace.get('name', '')} has invalid {direction}-dnsname format: {dnsname}")
+
+        if results["status"] == "PASS":
+            results["details"].append("All DNS-based endpoint attributes are valid domain names.")
+
+    except Exception as e:
+        results["status"] = "FAIL"
+        results["details"].append(f"Error checking DNS endpoint attributes: {str(e)}")
+
+    return results
+
+
+
+def check_ace_policy_attributes(mud_data):
+    """
+    Test Case: Verify that ACE attributes align with policy intent.
+    """
+    results = {"status": "PASS", "details": []}
+
+    allowed_attrs = {
+        "from-device-policy": ["dst-dnsname", "destination-ipv4-network", "destination-ipv6-network"],
+        "to-device-policy": ["src-dnsname", "source-ipv4-network", "source-ipv6-network"]
+    }
+
+    disallowed_attrs = {
+        "from-device-policy": ["src-dnsname", "source-ipv4-network", "source-ipv6-network"],
+        "to-device-policy": ["dst-dnsname", "destination-ipv4-network", "destination-ipv6-network"]
+    }
+
+    acl_list = mud_data.get("ietf-access-control-list:access-lists", {}).get("acl", [])
+
+    for acl in acl_list:
+        acl_name = acl.get("name", "")
+        if "from-device" in acl_name:
+            policy_type = "from-device-policy"
+        elif "to-device" in acl_name:
+            policy_type = "to-device-policy"
+        else:
+            continue  # skip ACLs not labeled as from/to-device
+
+        for ace in acl.get("aces", {}).get("ace", []):
+            matches = ace.get("matches", {})
+            for attr in matches.keys():
+                if attr not in allowed_attrs[policy_type]:
+                    results["status"] = "FAIL"
+                    results["details"].append({
+                        "acl": acl_name,
+                        "ace": ace.get("name", "unknown"),
+                        "attribute": attr,
+                        "error": f"Disallowed attribute '{attr}' in {policy_type}"
+                    })
+
+    if results["status"] == "PASS":
+        print("✅ All ACEs comply with policy attribute intent.")
+    else:
+        print("❌ Policy attribute mismatches found:")
+        for issue in results["details"]:
+            print(f"  - {issue['acl']} → {issue['ace']}: {issue['error']}")
+
+    return results
+
+
+def check_direction_initiated_tcp_only(mud_data):
+    """
+    Test Case: Verify that 'direction-initiated' is only applied to TCP-based ACEs.
+    """
+    results = {"status": "PASS", "details": []}
+
+    acl_list = mud_data.get("ietf-access-control-list:access-lists", {}).get("acl", [])
+
+    for acl in acl_list:
+        acl_name = acl.get("name", "")
+        for ace in acl.get("aces", {}).get("ace", []):
+            protocol = ace.get("matches", {}).get("protocol")
+            direction_attr = ace.get("matches", {}).get("direction-initiated")
+            
+            if direction_attr is not None:
+                if protocol != 6:  # 6 = TCP
+                    results["status"] = "FAIL"
+                    results["details"].append({
+                        "acl": acl_name,
+                        "ace": ace.get("name", "unknown"),
+                        "error": "'direction-initiated' applied to non-TCP ACE"
+                    })
+
+    if results["status"] == "PASS":
+        print("✅ All 'direction-initiated' attributes correctly applied only to TCP ACEs.")
+    else:
+        print("❌ Misapplied 'direction-initiated' attributes found:")
+        for issue in results["details"]:
+            print(f"  - {issue['acl']} → {issue['ace']}: {issue['error']}")
+
+    return results
+
+
+def check_ace_actions(mud_data):
+    """
+    Test Case: Verify that each ACE specifies only 'accept' or 'drop' as actions.
+    """
+    results = {"status": "PASS", "details": []}
+
+    acl_list = mud_data.get("ietf-access-control-list:access-lists", {}).get("acl", [])
+
+    for acl in acl_list:
+        acl_name = acl.get("name", "")
+        for ace in acl.get("aces", {}).get("ace", []):
+            action = ace.get("actions", {}).get("forwarding")
+            if action not in ["accept", "drop"]:
+                results["status"] = "FAIL"
+                results["details"].append({
+                    "acl": acl_name,
+                    "ace": ace.get("name", "unknown"),
+                    "invalid_action": action
+                })
+
+    if results["status"] == "PASS":
+        print("✅ All ACEs specify valid actions ('accept' or 'drop').")
+    else:
+        print("❌ ACEs with invalid actions found:")
+        for issue in results["details"]:
+            print(f"  - {issue['acl']} → {issue['ace']}: invalid action '{issue['invalid_action']}'")
+
+    return results
+
+
+def check_ace_count(mud_data, max_aces=50):
+    """
+    Test Case: Verify that the number of ACEs in the MUD file is relatively small.
+    
+    Parameters:
+        mud_data (dict): Parsed MUD JSON data.
+        max_aces (int): Maximum recommended number of ACEs (default: 50).
+        
+    Returns:
+        dict: {'status': 'PASS'/'FAIL', 'count': int, 'message': str}
+    """
+    acl_list = mud_data.get("ietf-access-control-list:access-lists", {}).get("acl", [])
+    total_aces = 0
+
+    for acl in acl_list:
+        aces = acl.get("aces", {}).get("ace", [])
+        total_aces += len(aces)
+
+    if total_aces <= max_aces:
+        return {
+            "status": "PASS",
+            "count": total_aces,
+            "message": f"Number of ACEs is {total_aces}, which is within the recommended limit ({max_aces})."
+        }
+    else:
+        return {
+            "status": "FAIL",
+            "count": total_aces,
+            "message": f"Number of ACEs is {total_aces}, exceeding the recommended limit ({max_aces})."
+        }
+
 # ===============================
 # Run checks
 # ===============================
@@ -488,6 +803,30 @@ def run_checks():
         "communication_policy_message": None,
         "cache_validity_valid": None,
         "cache_validity_message": None,
+        "systeminfo_valid": None,
+        "systeminfo_message": None,
+        "firmware_software_valid": None,
+        "firmware_software_message": None,
+        "local_network_valid": None,
+        "local_network_message": None,
+        "controller_valid": None,
+        "controller_message": None,
+        "acl_attributes_valid": None,
+        "acl_attributes_message": None,
+        "ace_direction_valid": None,
+        "ace_direction_message": None,
+        "dnsname_valid": None,
+        "dnsname_message": None,
+        "ace_policy_valid": None,
+        "ace_policy_message": None,
+        "direction_initiated_valid": None,
+        "direction_initiated_message": None,
+        "ace_actions_valid": None,
+        "ace_actions_message": None,
+        "ace_count_valid": None,
+        "ace_count_message": None,
+        
+
     }
     with open(mud_file, "r") as f:
         mud_data = json.load(f)
@@ -536,12 +875,57 @@ def run_checks():
     local_ok, local_msg = check_local_network_addresses(mud_file)
     results["local_network_valid"] = local_ok
     results["local_network_message"] = local_msg
-    return results
+    
 
     # Test case 10:
-    results = {}
+    
     results["controller_check"] = check_controller_urls(mud_data)
+    results["controller_valid"] = all(r.get("status", "").startswith("valid") for r in results["controller_check"] if "status" in r)
+    results["controller_message"] = "; ".join([f"{r['controller']}: {r['status']}" for r in results["controller_check"] if "status" in r])
+
+    # Test case 11: ACL attribute completeness
+    acl_results = test_acl_attributes(mud_data)
+    results["acl_attributes_valid"] = (acl_results["status"] == "PASS")
+    results["acl_attributes_message"] = "; ".join(acl_results["details"])
+    
+    # Test case 12: ACE inbound/outbound direction policies
+    ace_dir_results = check_ace_direction_policies(mud_data)
+    results["ace_direction_valid"] = (ace_dir_results["status"] == "PASS")
+    results["ace_direction_message"] = "; ".join(ace_dir_results["details"])
+    
+    # Test case 13: DNS-based endpoint validation
+    dns_results = check_dnsname_endpoints(mud_data)
+    results["dnsname_valid"] = (dns_results["status"] == "PASS")
+    results["dnsname_message"] = "; ".join(dns_results["details"])
+    
+    # Test Case: ACE Policy Attributes
+    ace_policy_results = check_ace_policy_attributes(mud_data)
+    results["ace_policy_valid"] = ace_policy_results["status"] == "PASS"
+    results["ace_policy_message"] = "; ".join([d["error"] for d in ace_policy_results["details"]]) \
+    if ace_policy_results["details"] else "All ACEs comply with policy attribute intent."
+
+
+    # Test Case: Direction-Initiated Only for TCP
+    dir_init_results = check_direction_initiated_tcp_only(mud_data)
+    results["direction_initiated_valid"] = dir_init_results["status"] == "PASS"
+    results["direction_initiated_message"] = "; ".join([d["error"] for d in dir_init_results["details"]]) \
+    if dir_init_results["details"] else "All 'direction-initiated' attributes correctly applied to TCP ACEs."
+
+    # Test Case: ACE Actions
+    ace_actions_results = check_ace_actions(mud_data)
+    results["ace_actions_valid"] = ace_actions_results["status"] == "PASS"
+    results["ace_actions_message"] = "; ".join([f"{d['acl']}->{d['ace']}: {d['invalid_action']}" 
+                                             for d in ace_actions_results["details"]]) \
+    if ace_actions_results["details"] else "All ACE actions are valid ('accept' or 'drop')."
+    
+
+    # Test Case: ACE Count
+    ace_count_results = check_ace_count(mud_data)
+    results["ace_count_valid"] = ace_count_results["status"] == "PASS"
+    results["ace_count_message"] = ace_count_results["message"]
+
     return results
+
 
 
 # ===============================
