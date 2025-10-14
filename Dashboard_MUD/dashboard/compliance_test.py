@@ -4,7 +4,15 @@ import json
 from .testcases_verification import run_checks
 def run_device_test(device_mac):
     testcase_map = {
-        
+        "mud_url_emission": "MUD.1.1.1",
+        "url_consistent": "MUD.1.1.2",
+    "mud_url_valid": "MUD.1.1.3",
+    "mud_file_retrieved": "MUD.1.1.4",
+    "signature_present": "MUD.1.1.5",
+    "verify_cert": "MUD.1.1.6",
+    "cert_integrity": "MUD.1.1.7",
+    "cert_validity": "MUD.1.1.8",
+    "valid_json": "MUD.1.2.1",
     "utf8_valid": "MUD.1.2.2",
     "allowed_nodes_valid": "MUD.1.2.3",
     "extensions_valid": "MUD.1.2.4",
@@ -32,15 +40,27 @@ def run_device_test(device_mac):
 
     passed = 0
     failed = 0
-
+    details = []
+    test_passed = None
+    message = ""
     # Test 1: MUD URL exists
     if device.mud_url:
         passed += 1
-        
+        test_passed = True
+        message = "MUD URL is present."
     else:
         failed += 1
+        test_passed = False
+        message = "MUD URL is missing."
+    details.append({
+            "test_case_number": testcase_map.get("mud_url_emission", "unknown"),
+            "test_case_name": "mud_url_emission",
+            "passed": test_passed,
+            "message": message
+        })
        
-
+    test_passed = None
+    message = ""
     # Step 2: Call external python script with pcap file
     try:
         result = subprocess.run(
@@ -54,9 +74,19 @@ def run_device_test(device_mac):
       
         if "Ok" in output:
             passed += 1
+            test_passed = True
+            message = "MUD URL is valid."
 
         else:
             failed += 1
+            test_passed = False
+            message = "MUD URL is not valid."
+        details.append({
+            "test_case_number": testcase_map.get("mud_url_valid", "unknown"),
+            "test_case_name": "mud_url_valid",
+            "passed": test_passed,
+            "message": message
+        })
            
         
     except subprocess.SubprocessError as e:
@@ -64,6 +94,8 @@ def run_device_test(device_mac):
         failed += 1
     
     # Test 3: Call tests.py with mud_url
+    test_passed = None
+    message = ""
     if device.mud_url:
         try:
             result = subprocess.run(
@@ -79,14 +111,36 @@ def run_device_test(device_mac):
             # Check if MUD file exists
             if data.get("retrieved") is True:
                 passed += 1
+                test_passed = True
+                message = "MUD file retrieved successfully."
             else:
                 failed += 1
+                test_passed = False
+                message = "Failed to retrieve MUD file."
+            details.append({
+                "test_case_number": testcase_map.get("mud_file_retrieved", "unknown"),
+                "test_case_name": "mud_file_retrieved",
+                "passed": test_passed,
+                "message": message  
+            })
 
             # ✅ Check if signature is valid
+            test_passed = None
+            message = ""
             if data.get("signature_valid") is True:
                 passed += 1
+                test_passed = True
+                message = "Signature is valid."
             else:
                 failed += 1
+                test_passed = False
+                message = "Signature is invalid."
+            details.append({
+                "test_case_number": testcase_map.get("signature_present", "unknown"),
+                "test_case_name": "signature_present",
+                "passed": test_passed,
+                "message": message  
+            })
 
         except subprocess.SubprocessError as e:
             print(f"Error running tests.py: {e}")
@@ -99,7 +153,7 @@ def run_device_test(device_mac):
     #results = run_checks(device.mud_url, mud_file_path)
     results = run_checks()
     print(results)
-    details = []
+    
     for key, value in results.items():
         if key.endswith("_valid"):
             test_passed = None          
