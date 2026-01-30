@@ -1,55 +1,251 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <title>MUD Dashboard</title>
     <style>
         /* ===== Base Styles ===== */
-        body { font-family: 'Segoe UI', sans-serif; background: #1e1e1e; color: #e0e0e0; margin: 0; padding: 0; transition: all 0.3s; }
-        a { text-decoration: none; }
-        button { cursor: pointer; }
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: #1e1e1e;
+            color: #e0e0e0;
+            margin: 0;
+            padding: 0;
+            transition: all 0.3s;
+        }
+
+        a {
+            text-decoration: none;
+        }
+
+        button {
+            cursor: pointer;
+        }
+
         /* ===== Light Mode ===== */
-        body.light { background: #f4f4f4; color: #1e1e1e; }
-        body.light .navbar { background: #e0e0e0; border-bottom: 2px solid #bbb; }
-        body.light .navbar a { color: #1e1e1e; }
-        body.light h1, body.light .section-title { color: #222; }
-        body.light table { background: #fff; color: #000; }
-        body.light th { background: #eee; color: #000; }
-        body.light tr:nth-child(even) { background: #f9f9f9; }
-        body.light tr:hover { background: #ddd; }
+        body.light {
+            background: #f4f4f4;
+            color: #1e1e1e;
+        }
+
+        body.light .navbar {
+            background: #e0e0e0;
+            border-bottom: 2px solid #bbb;
+        }
+
+        body.light .navbar a {
+            color: #1e1e1e;
+        }
+
+        body.light h1,
+        body.light .section-title {
+            color: #222;
+        }
+
+        body.light table {
+            background: #fff;
+            color: #000;
+        }
+
+        body.light th {
+            background: #eee;
+            color: #000;
+        }
+
+        body.light tr:nth-child(even) {
+            background: #f9f9f9;
+        }
+
+        body.light tr:hover {
+            background: #ddd;
+        }
+
         /* ===== Navbar ===== */
-        .navbar { display:flex; justify-content:flex-end; padding:15px 30px; background:#2a2a2a; border-bottom:2px solid #444; }
-        .navbar a { margin-left:20px; color:#e0e0e0; font-weight:500; }
-        .navbar a button { background:#444; color:#fff; padding:8px 14px; border:none; border-radius:6px; }
-        #modeToggle { background:#555; color:#fff; border:none; padding:8px 14px; border-radius:6px; margin-left:20px; }
+        .navbar {
+            display: flex;
+            justify-content: flex-end;
+            padding: 15px 30px;
+            background: #2a2a2a;
+            border-bottom: 2px solid #444;
+        }
+
+        .navbar a {
+            margin-left: 20px;
+            color: #e0e0e0;
+            font-weight: 500;
+        }
+
+        .navbar a button {
+            background: #444;
+            color: #fff;
+            padding: 8px 14px;
+            border: none;
+            border-radius: 6px;
+        }
+
+        #modeToggle {
+            background: #555;
+            color: #fff;
+            border: none;
+            padding: 8px 14px;
+            border-radius: 6px;
+            margin-left: 20px;
+        }
+
         /* ===== Titles ===== */
-        h1 { text-align:center; margin-top:30px; font-size:34px; }
-        .section-title { margin-left:75px; font-size:22px; margin-top:40px; }
+        h1 {
+            text-align: center;
+            margin-top: 30px;
+            font-size: 34px;
+        }
+
+        .section-title {
+            margin-left: 75px;
+            font-size: 22px;
+            margin-top: 40px;
+        }
+
         /* ===== Cards ===== */
-        .dashboard { display:flex; justify-content:center; gap:40px; margin:40px 0; flex-wrap:wrap; }
-        .card { background:#2b2b2b; border-radius:12px; padding:20px; box-shadow:0 4px 12px rgba(0,0,0,0.4); text-align:center; }
+        .dashboard {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            margin: 40px 0;
+            flex-wrap: wrap;
+        }
+
+        .card {
+            background: #2b2b2b;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+            text-align: center;
+        }
+
         /* ===== Tables ===== */
-        table { width:90%; margin:30px auto; border-collapse:collapse; background:#2c2c2c; border-radius:10px; overflow:hidden; box-shadow:0 2px 12px rgba(0,0,0,0.6); }
-        th, td { padding:12px 16px; border:1px solid #3d3d3d; text-align:center; }
-        th { background:#3b3b3b; color:#fff; font-weight:bold; }
-        tr:nth-child(even) { background:#333; }
-        tr:hover { background:#3d3d3d; }
+        table {
+            width: 90%;
+            margin: 30px auto;
+            border-collapse: collapse;
+            background: #2c2c2c;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.6);
+        }
+
+        th,
+        td {
+            padding: 12px 16px;
+            border: 1px solid #3d3d3d;
+            text-align: center;
+        }
+
+        th {
+            background: #3b3b3b;
+            color: #fff;
+            font-weight: bold;
+        }
+
+        tr:nth-child(even) {
+            background: #333;
+        }
+
+        tr:hover {
+            background: #3d3d3d;
+        }
+
         /* ===== Buttons ===== */
-        button { padding:8px 16px; border:none; border-radius:6px; font-weight:bold; margin:2px; }
-        .start-button { background:#388e3c; color:#fff; }
-        .stop-button { background:#d32f2f; color:#fff; }
-        .buttons, .log-buttons { display: flex; justify-content: center; gap: 20px; margin: 30px 0; }
-        .buttons button, .log-buttons button { background-color: #555; color: white; padding: 12px 20px; border: none; border-radius: 6px; font-weight: bold; }
+        button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            font-weight: bold;
+            margin: 2px;
+        }
+
+        .start-button {
+            background: #388e3c;
+            color: #fff;
+        }
+
+        .stop-button {
+            background: #d32f2f;
+            color: #fff;
+        }
+
+        .buttons,
+        .log-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin: 30px 0;
+        }
+
+        .buttons button,
+        .log-buttons button {
+            background-color: #555;
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 6px;
+            font-weight: bold;
+        }
+
         /* ===== Logs ===== */
-        .log-buttons { display:flex; justify-content:center; gap:20px; margin-top:30px; }
-        .log-content { display:none; margin:20px auto; width:90%; padding:20px; border-radius:10px; background:#262626; color:#e0e0e0; max-height:300px; overflow-y:auto; }
-        .log-content.active { display:block; }
+        .log-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 30px;
+        }
+
+        .log-content {
+            display: none;
+            margin: 20px auto;
+            width: 90%;
+            padding: 20px;
+            border-radius: 10px;
+            background: #262626;
+            color: #e0e0e0;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .log-content.active {
+            display: block;
+        }
+
         /* ===== Modal ===== */
-        .modal { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); display:none; z-index:1000; }
-        .modal-content { background:#fff; margin:10% auto; padding:20px; width:60%; border-radius:8px; }
-        .close { float:right; font-size:24px; cursor:pointer; }
-        </style>
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: #fff;
+            margin: 10% auto;
+            padding: 20px;
+            width: 60%;
+            border-radius: 8px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .close {
+            float: right;
+            font-size: 24px;
+            cursor: pointer;
+        }
+    </style>
 </head>
+
 <body>
 
     <div class="navbar">
@@ -59,9 +255,9 @@
         <a href="#"><button>Sign out</button></a>
         <button id="modeToggle">Light Mode</button>
     </div>
-    
+
     <h1>MUD Behavior Analytics</h1>
-    
+
     <div class="section-title">Analytics</div>
     <div class="dashboard">
         <div class="card"><canvas id="misbehaviorChart" width="200" height="200"></canvas></div>
@@ -71,7 +267,14 @@
     <!-- Connected Devices Table -->
     <div class="section-title">Connected Devices</div>
     <table>
-        <tr><th>Name</th><th>MAC</th><th>IP</th><th>MUD Compliance</th><th>Last Seen</th><th>Status</th></tr>
+        <tr>
+            <th>Name</th>
+            <th>MAC</th>
+            <th>IP</th>
+            <th>MUD Compliance</th>
+            <th>Last Seen</th>
+            <th>Status</th>
+        </tr>
         {% for device in devices %}
         <tr>
             <td>{{ device.name }}</td>
@@ -98,7 +301,13 @@
     <div class="section-title">Testcase Results</div>
     <table>
         <tr>
-            <th>Name</th><th>MAC</th><th>IP</th><th>Passed</th><th>Failed</th><th>Total</th><th>Action</th>
+            <th>Name</th>
+            <th>MAC</th>
+            <th>IP</th>
+            <th>Passed</th>
+            <th>Failed</th>
+            <th>Total</th>
+            <th>Action</th>
         </tr>
         {% for device in testcase_devices %}
         <tr>
@@ -114,7 +323,9 @@
             </td>
         </tr>
         {% empty %}
-        <tr><td colspan="7">No reachable MUD-compliant devices</td></tr>
+        <tr>
+            <td colspan="7">No reachable MUD-compliant devices</td>
+        </tr>
         {% endfor %}
     </table>
 
@@ -124,7 +335,12 @@
             <span class="close" onclick="closeModal()">&times;</span>
             <h3>Device Testcase Details</h3>
             <table id="detailsTable">
-                <tr><th>Test Case Number</th><th>Test Case Name</th><th>Passed</th><th>Message</th></tr>
+                <tr>
+                    <th>Test Case Number</th>
+                    <th>Test Case Name</th>
+                    <th>Passed</th>
+                    <th>Message</th>
+                </tr>
             </table>
         </div>
     </div>
@@ -140,16 +356,16 @@
     <div id="traffic" class="log-content active traffic-box">
         <h3>Recent Traffic Flows</h3>
         {% if traffic_flows %}
-            {% for ip_mac, flows in traffic_flows.items %}
-                <h4>{{ ip_mac }}</h4>
-                <ul>
-                    {% for flow in flows %}
-                        <li>[{{ flow.0 }}] {{ flow.1 }} → {{ flow.2 }} — {{ flow.3 }}</li>
-                    {% endfor %}
-                </ul>
+        {% for ip_mac, flows in traffic_flows.items %}
+        <h4>{{ ip_mac }}</h4>
+        <ul>
+            {% for flow in flows %}
+            <li>[{{ flow.0 }}] {{ flow.1 }} → {{ flow.2 }} — {{ flow.3 }}</li>
             {% endfor %}
+        </ul>
+        {% endfor %}
         {% else %}
-            <p>No recent traffic flows found.</p>
+        <p>No recent traffic flows found.</p>
         {% endif %}
     </div>
 
@@ -157,7 +373,7 @@
         <h3>Misbehavior Counts</h3>
         <ul>
             {% for ip, count in misbehaviors.items %}
-                <li>{{ ip }}: {{ count }} blocked attempts</li>
+            <li>{{ ip }}: {{ count }} blocked attempts</li>
             {% endfor %}
         </ul>
     </div>
@@ -166,7 +382,9 @@
         <h3>Gateway Logs</h3>
         <ul>
             {% for log in provisioning_logs %}
-                <li><pre>{{ log }}</pre></li>
+            <li>
+                <pre>{{ log }}</pre>
+            </li>
             {% endfor %}
         </ul>
     </div>
@@ -180,15 +398,15 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
 
-    let misbehaviorCtx = document.getElementById('misbehaviorChart').getContext('2d');
-    let trafficCtx = document.getElementById('trafficChart').getContext('2d');
+        let misbehaviorCtx = document.getElementById('misbehaviorChart').getContext('2d');
+        let trafficCtx = document.getElementById('trafficChart').getContext('2d');
 
-    let labels = JSON.parse(document.getElementById('chart-labels').textContent);
-    let values = JSON.parse(document.getElementById('chart-values').textContent);
-    let trafficLabels = JSON.parse(document.getElementById('traffic-labels').textContent);
-    let trafficValues = JSON.parse(document.getElementById('traffic-values').textContent);
+        let labels = JSON.parse(document.getElementById('chart-labels').textContent);
+        let values = JSON.parse(document.getElementById('chart-values').textContent);
+        let trafficLabels = JSON.parse(document.getElementById('traffic-labels').textContent);
+        let trafficValues = JSON.parse(document.getElementById('traffic-values').textContent);
 
-    let currentTheme = 'dark';
+        let currentTheme = 'dark';
 
         // ----------------------
         // Log Tabs
@@ -202,75 +420,76 @@
         // Charts Helper
         // ----------------------
         function createPieChart(ctx, labels, values, title, theme) {
-    const isLight = theme === 'light';
-    return new Chart(ctx, {
-        type: 'pie',
-        data: {
-            labels: labels,
-            datasets: [{
-                data: values,
-                backgroundColor: ['#8e44ad','#2980b9','#27ae60','#f39c12','#e74c3c','#16a085'],
-                borderColor: isLight?'#fff':'#1e1e1e',
-                borderWidth:2
-            }]
-        },
-        options: {
-            responsive:true,
-            plugins:{
-                legend:{ position:'bottom', labels:{ color: isLight?'#000':'#ddd' }},
-                title:{ display:true, text:title, color:isLight?'#000':'#fff' }
-            }
+            const isLight = theme === 'light';
+            return new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: values,
+                        backgroundColor: ['#8e44ad', '#2980b9', '#27ae60', '#f39c12', '#e74c3c', '#16a085'],
+                        borderColor: isLight ? '#fff' : '#1e1e1e',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { position: 'bottom', labels: { color: isLight ? '#000' : '#ddd' } },
+                        title: { display: true, text: title, color: isLight ? '#000' : '#fff' }
+                    }
+                }
+            });
         }
-    });
-}
 
-// Initialize charts
-let misbehaviorChart = createPieChart(misbehaviorCtx, labels, values, 'MUD Devices', currentTheme);
-let trafficChart = createPieChart(trafficCtx, trafficLabels, trafficValues, 'Test Cases', currentTheme);
+        // Initialize charts
+        let misbehaviorChart = createPieChart(misbehaviorCtx, labels, values, 'MUD Devices', currentTheme);
+        let trafficChart = createPieChart(trafficCtx, trafficLabels, trafficValues, 'Test Cases', currentTheme);
 
-// Toggle Dark/Light Mode
-document.getElementById('modeToggle').addEventListener('click', function() {
-    document.body.classList.toggle('light');
-    currentTheme = document.body.classList.contains('light') ? 'light' : 'dark';
-    this.textContent = currentTheme === 'light' ? 'Dark Mode' : 'Light Mode';
+        // Toggle Dark/Light Mode
+        document.getElementById('modeToggle').addEventListener('click', function () {
+            document.body.classList.toggle('light');
+            currentTheme = document.body.classList.contains('light') ? 'light' : 'dark';
+            this.textContent = currentTheme === 'light' ? 'Dark Mode' : 'Light Mode';
 
-    // Recreate charts with updated theme
-    misbehaviorChart.destroy();
-    trafficChart.destroy();
-    misbehaviorChart = createPieChart(misbehaviorCtx, labels, values, 'MUD Devices', currentTheme);
-    trafficChart = createPieChart(trafficCtx, trafficLabels, trafficValues, 'Test Cases', currentTheme);
-});
+            // Recreate charts with updated theme
+            misbehaviorChart.destroy();
+            trafficChart.destroy();
+            misbehaviorChart = createPieChart(misbehaviorCtx, labels, values, 'MUD Devices', currentTheme);
+            trafficChart = createPieChart(trafficCtx, trafficLabels, trafficValues, 'Test Cases', currentTheme);
+        });
 
         // ----------------------
         // Testcase Modal Functions
         // ----------------------
         function runTest(mac) {
             fetch(`/run_test/?mac=${mac}`)
-                .then(res=>res.json())
-                .then(data=> window.location.reload())
-                .catch(err=>console.error(err));
+                .then(res => res.json())
+                .then(data => window.location.reload())
+                .catch(err => console.error(err));
         }
 
         function viewDetails(mac) {
             fetch(`/run_test/?mac=${mac}`)
-                .then(res=>res.json())
-                .then(data=>{
+                .then(res => res.json())
+                .then(data => {
                     const table = document.getElementById('detailsTable');
                     table.innerHTML = `<tr><th>Test Case Number</th><th>Test Case Name</th><th>Passed</th><th>Message</th></tr>`;
-                    data.details.forEach(tc=>{
+                    data.details.forEach(tc => {
                         const row = table.insertRow();
-                        row.insertCell(0).innerText=tc.test_case_number;
-                        row.insertCell(1).innerText=tc.test_case_name;
-                        row.insertCell(2).innerText=tc.passed?'Yes':'No';
-                        row.insertCell(3).innerText=tc.message||'';
+                        row.insertCell(0).innerText = tc.test_case_number;
+                        row.insertCell(1).innerText = tc.test_case_name;
+                        row.insertCell(2).innerText = tc.passed ? 'Yes' : 'No';
+                        row.insertCell(3).innerText = tc.message || '';
                     });
-                    document.getElementById('detailsModal').style.display='block';
-                }).catch(err=>console.error(err));
+                    document.getElementById('detailsModal').style.display = 'block';
+                }).catch(err => console.error(err));
         }
 
-        function closeModal() { document.getElementById('detailsModal').style.display='none'; }
-        window.onclick = function(event){ if(event.target==document.getElementById('detailsModal')) closeModal(); }
+        function closeModal() { document.getElementById('detailsModal').style.display = 'none'; }
+        window.onclick = function (event) { if (event.target == document.getElementById('detailsModal')) closeModal(); }
     </script>
 
 </body>
+
 </html>

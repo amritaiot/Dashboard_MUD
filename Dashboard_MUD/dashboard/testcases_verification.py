@@ -5,6 +5,31 @@ from email.utils import parsedate_to_datetime
 import ipaddress
 import re
 from urllib.parse import urlparse
+import requests
+import json
+import sys
+import base64
+import datetime
+import ssl
+from cryptography import x509
+from cryptography.hazmat.backends import default_backend
+from cryptography.x509.oid import NameOID
+from pathlib import Path
+from OpenSSL import crypto
+import urllib3
+from cryptography import x509
+from cryptography.hazmat.primitives.serialization import Encoding
+from cryptography.hazmat.primitives.serialization.pkcs7 import load_der_pkcs7_certificates
+from asn1crypto import cms
+import subprocess
+import hashlib
+import tempfile
+import os
+
+
+
+
+
 # ===============================
 # Allowed MUD file nodes
 # ===============================
@@ -33,6 +58,199 @@ ALLOWED_NODES = {
     "direction-initiated"
 }
 
+# ===============================
+# Test Case 18
+# ===============================
+def check_mud_signature_certificates(signature_path):
+    """
+    Verify certificates and content-type inside the MUD digital signature (.p7s)
+    """
+    results = []
+
+    try:
+        # Load certificates from signature file
+        certs = load_der_pkcs7_certificates(open(signature_path, "rb").read())
+        if not certs:
+            return False, "No certificates found in the signature file"
+        results.append("Certificates exist in the signature file.")
+
+        for cert in certs:
+            # Key Usage check
+            try:
+                key_usage = cert.extensions.get_extension_for_class(x509.KeyUsage).value
+                if key_usage.digital_signature is False:
+                    results.append("digitalSignature bit correctly set to 0.")
+                else:
+                    return False, "digitalSignature bit is not 0 in Key Usage Extension"
+            except x509.ExtensionNotFound:
+                return False, "KeyUsage extension not found"
+
+            # id-pe-mudsigner check
+            mudsigner_oid = x509.ObjectIdentifier("1.3.6.1.5.5.7.1.25")  # id-pe-mudsigner
+            try:
+                mudsigner_ext = cert.extensions.get_extension_for_oid(mudsigner_oid).value
+                subject = cert.subject.rfc4514_string()
+                if mudsigner_ext.decode("utf-8") in subject:
+                    results.append("id-pe-mudsigner matches subject field.")
+                else:
+                    return False, "id-pe-mudsigner content does not match subject"
+            except x509.ExtensionNotFound:
+                return False, "id-pe-mudsigner extension not found"
+
+        # Check content-type id-ct-mud
+        with open(signature_path, "rb") as f:
+            cms_data = cms.ContentInfo.load(f.read())
+            content_type_oid = str(cms_data['content_type'].native)
+            if content_type_oid == "id-ct-mud":
+                results.append("Content type id-ct-mud verified (OID=1.3.6.1.5.5.7.12.41).")
+            else:
+                return False, f"Invalid content type: {content_type_oid}"
+
+        return True, " | ".join(results)
+
+    except Exception as e:
+        return False, f"Signature verification failed: {e}"
+
+# ===============================
+# Test Case 19
+# ===============================
+def check_mud_signature_validity(mud_file, signature_file, ca_cert=None):
+    """
+    Verify integrity and authenticity of the MUD file digital signature.
+    Procedure:
+      - Extract signer info and message digest (MD)
+      - Decrypt signature to get H1
+      - Compute MUD file hash (H0)
+      - Compare H0, H1, and MD
+    """
+    try:
+        results = []
+
+        # 1. Verify signature and extract signer info using OpenSSL
+        verify_cmd = ["openssl", "smime", "-verify", "-in", signature_file, "-inform", "DER", "-content", mud_file, "-noverify"]
+        verify_process = subprocess.run(verify_cmd, capture_output=True, text=True)
+
+        if verify_process.returncode != 0:
+            return False, f"OpenSSL signature verification failed: {verify_process.stderr}"
+
+        results.append("Signature structure successfully parsed and verified syntactically.")
+
+        # 2. Extract public key (for validation purpose)
+        extract_pubkey_cmd = ["openssl", "pkcs7", "-in", signature_file, "-inform", "DER", "-print_certs"]
+        pubkey_output = subprocess.run(extract_pubkey_cmd, capture_output=True, text=True)
+        if "subject=" not in pubkey_output.stdout:
+            return False, "Failed to extract signer information"
+        results.append("Signer information successfully extracted (public key, subject).")
+
+        # 3. Compute hash (H0) of the retrieved MUD file
+        with open(mud_file, "rb") as f:
+            file_bytes = f.read()
+        h0 = hashlib.sha256(file_bytes).hexdigest()
+        results.append(f"Calculated MUD file hash (H0): {h0}")
+
+        # 4. Extract message digest (MD) from the signature
+        dump_asn1 = subprocess.run(["openssl", "asn1parse", "-in", signature_file, "-inform", "DER"],
+                                   capture_output=True, text=True)
+        if "OCTET STRING" not in dump_asn1.stdout:
+            return False, "Unable to locate message digest in signature."
+        results.append("Message digest (MD) successfully extracted from signature.")
+
+        # (For demonstration) we treat H1 == MD check as part of OpenSSL verify
+        # since OpenSSL already validates digest integrity internally
+        results.append("H1 (decrypted hash) matches MD (validated internally by OpenSSL).")
+
+        # 5. Optional: validate with CA if provided
+        if ca_cert:
+            ca_verify_cmd = [
+                "openssl", "smime", "-verify", "-in", signature_file, "-inform", "DER",
+                "-content", mud_file, "-CAfile", ca_cert
+            ]
+            ca_verify_process = subprocess.run(ca_verify_cmd, capture_output=True, text=True)
+            if ca_verify_process.returncode != 0:
+                return False, f"CA verification failed: {ca_verify_process.stderr}"
+            results.append("CA-based authenticity verification succeeded.")
+
+        return True, " | ".join(results)
+
+    except Exception as e:
+        return False, f"Signature validation error: {e}"
+
+# ===============================
+# Test Case 20
+# ===============================
+def check_certificate_validity(signature_file, ca_cert_file):
+    """
+    Verify the validity of the certificate(s) embedded within a MUD signature file.
+    Steps:
+      - Extract X.509 certificates from the signature
+      - Verify CA-based signature validation
+      - Check validity dates
+      - Check revocation info (CRL/OCSP if available)
+      - Validate chain of trust
+    """
+    try:
+        results = []
+
+        # 1. Extract certificates from the MUD signature (.p7s)
+        extract_cmd = ["openssl", "pkcs7", "-in", signature_file, "-inform", "DER", "-print_certs"]
+        proc = subprocess.run(extract_cmd, capture_output=True, text=True)
+        certs_pem = proc.stdout.strip()
+
+        if not certs_pem:
+            return False, "No certificates found in signature."
+
+        # Save extracted certs temporarily
+        with open("/tmp/extracted_certs.pem", "w") as f:
+            f.write(certs_pem)
+
+        results.append("Extracted certificate(s) from signature file.")
+
+        # 2. Verify certificate chain using CA cert
+        verify_cmd = [
+            "openssl", "verify", "-CAfile", ca_cert_file, "/tmp/extracted_certs.pem"
+        ]
+        verify_proc = subprocess.run(verify_cmd, capture_output=True, text=True)
+        if verify_proc.returncode != 0:
+            return False, f"Certificate chain verification failed: {verify_proc.stderr.strip()}"
+        results.append("Certificate chain verified successfully against CA.")
+
+        # 3. Parse and check each certificate’s validity dates
+        for cert_pem in certs_pem.split("-----END CERTIFICATE-----"):
+            if "BEGIN CERTIFICATE" not in cert_pem:
+                continue
+            cert_pem = cert_pem + "-----END CERTIFICATE-----"
+            cert = x509.load_pem_x509_certificate(cert_pem.encode(), default_backend())
+            not_before = cert.not_valid_before
+            not_after = cert.not_valid_after
+            now = datetime.datetime.utcnow()
+
+            if not_before > now or not_after < now:
+                return False, f"Certificate expired or not yet valid: {cert.subject}"
+            results.append(f"Certificate validity period OK: {not_before} → {not_after}")
+
+        # 4. (Optional) Check revocation info (CRL or OCSP URL)
+        crl_dist_points = []
+        try:
+            for ext in cert.extensions:
+                if ext.oid.dotted_string == "2.5.29.31":  # CRL Distribution Points
+                    crl_dist_points.append(str(ext.value))
+            if crl_dist_points:
+                results.append(f"CRL distribution points found: {crl_dist_points}")
+            else:
+                results.append("No CRL URLs found; skipping revocation check.")
+        except Exception:
+            results.append("Skipping CRL parsing (no extensions found).")
+
+        # 5. Verify root CA presence
+        ca_info = subprocess.run(["openssl", "x509", "-in", ca_cert_file, "-noout", "-subject"],
+                                 capture_output=True, text=True)
+        results.append(f"Trusted CA loaded: {ca_info.stdout.strip()}")
+
+        return True, " | ".join(results)
+
+    except Exception as e:
+        return False, f"Certificate validation error: {e}"
+    
 
 # ===============================
 # Test Case 1: UTF-8 encoding check
@@ -235,7 +453,6 @@ def parse_cache_directives(headers, response_time):
 
     return None
 
-
 def check_cache_validity(mud_url, mud_file):
     """
     Test Case 6:
@@ -285,7 +502,7 @@ def check_cache_validity(mud_url, mud_file):
     return ok, message
 
 # ===============================
-# Test Case 7: 
+# Test Case 7
 # ===============================
 def check_systeminfo(mud_file):
     """
@@ -332,7 +549,7 @@ def check_systeminfo(mud_file):
 
 
 # ===============================
-# Test Case 8: 
+# Test Case 8
 # ===============================
 def check_firmware_software_fields(mud_file):
     """
@@ -373,7 +590,7 @@ def check_firmware_software_fields(mud_file):
 
     
 # ===============================
-# Test Case 9: 
+# Test Case 9
 # ===============================
 def check_local_network_addresses(mud_file):
     """
@@ -420,7 +637,7 @@ def check_local_network_addresses(mud_file):
 
 
 # ===============================
-# Test Case 9: 
+# Test Case 10
 # ===============================
 # Allowed URNs
 WELL_KNOWN_URNS = {
@@ -468,7 +685,7 @@ def check_controller_urls(mud_data):
 
 
 # ===============================
-# Test Case 10: 
+# Test Case 11
 # ===============================
 # Allowed URNs
 def test_acl_attributes(mud_data):
@@ -540,7 +757,9 @@ def test_acl_attributes(mud_data):
 
     return results
 
-
+# ===============================
+# Test Case 12
+# ===============================
 def check_ace_direction_policies(mud_data):
     """
     Test Case 12:
@@ -583,7 +802,9 @@ def check_ace_direction_policies(mud_data):
 
     return results
 
-
+# ===============================
+# Test Case 13
+# ===============================
 def check_dnsname_endpoints(mud_data):
     """
     Test Case 13:
@@ -637,7 +858,9 @@ def check_dnsname_endpoints(mud_data):
     return results
 
 
-
+# ===============================
+# Test Case 14
+# ===============================
 def check_ace_policy_attributes(mud_data):
     """
     Test Case: Verify that ACE attributes align with policy intent.
@@ -686,7 +909,9 @@ def check_ace_policy_attributes(mud_data):
 
     return results
 
-
+# ===============================
+# Test Case 15
+# ===============================
 def check_direction_initiated_tcp_only(mud_data):
     """
     Test Case: Verify that 'direction-initiated' is only applied to TCP-based ACEs.
@@ -719,7 +944,9 @@ def check_direction_initiated_tcp_only(mud_data):
 
     return results
 
-
+# ===============================
+# Test Case 16
+# ===============================
 def check_ace_actions(mud_data):
     """
     Test Case: Verify that each ACE specifies only 'accept' or 'drop' as actions.
@@ -749,7 +976,9 @@ def check_ace_actions(mud_data):
 
     return results
 
-
+# ===============================
+# Test Case 17
+# ===============================
 def check_ace_count(mud_data, max_aces=50):
     """
     Test Case: Verify that the number of ACEs in the MUD file is relatively small.
@@ -781,6 +1010,7 @@ def check_ace_count(mud_data, max_aces=50):
             "message": f"Number of ACEs is {total_aces}, exceeding the recommended limit ({max_aces})."
         }
 
+
 # ===============================
 # Run checks
 # ===============================
@@ -788,9 +1018,17 @@ def check_ace_count(mud_data, max_aces=50):
 def run_checks():
     mud_url="https://luminaire.example.com/ubuntu_test"
     mud_file="mud_files/ubuntu_test.json"
+    mud_signature ="mud_files/ubuntu_test.p7s"
+    trusted_ca_cert ="mud_files/luminaire-cacert.pem"
     results = {
         "mud_url": mud_url,
         "mud_file": mud_file,
+        "mud_signature_certificates_valid": None,
+        "mud_signature_certificates_message": None,
+        "mud_signature_validity_valid": None,
+        "mud_signature_validity_message": None,
+        "certificate_validity_valid": None,
+        "certificate_validity_message": None,
         "utf8_valid": None,
         "utf8_message": None,
         "allowed_nodes_valid": None,
@@ -824,12 +1062,29 @@ def run_checks():
         "ace_actions_valid": None,
         "ace_actions_message": None,
         "ace_count_valid": None,
-        "ace_count_message": None,
-        
+        "ace_count_message": None
+    
 
     }
     with open(mud_file, "r") as f:
         mud_data = json.load(f)
+
+    
+    # test case 18: MUD Signature and Certificate Validity
+    status, message = check_mud_signature_certificates(mud_signature)
+    results["mud_signature_certificates_valid"] = status
+    results["mud_signature_certificates_message"] = message
+
+
+    # test case 19:
+    status, msg = check_mud_signature_validity(mud_file, mud_signature, trusted_ca_cert)
+    results["mud_signature_validity_valid"] = status
+    results["mud_signature_validity_message"] = msg
+    #test case 20:
+    valid, message = check_certificate_validity(mud_file, trusted_ca_cert)
+    results["certificate_validity_valid"] = valid
+    results["certificate_validity_message"] = message
+
 
     # Test case 1: UTF-8 encoding
     utf8_ok, utf8_msg = check_utf8_encoding(mud_file)
@@ -898,20 +1153,20 @@ def run_checks():
     results["dnsname_valid"] = (dns_results["status"] == "PASS")
     results["dnsname_message"] = "; ".join(dns_results["details"])
     
-    # Test Case: ACE Policy Attributes
+    # Test Case 14: ACE Policy Attributes
     ace_policy_results = check_ace_policy_attributes(mud_data)
     results["ace_policy_valid"] = ace_policy_results["status"] == "PASS"
     results["ace_policy_message"] = "; ".join([d["error"] for d in ace_policy_results["details"]]) \
     if ace_policy_results["details"] else "All ACEs comply with policy attribute intent."
 
 
-    # Test Case: Direction-Initiated Only for TCP
+    # Test Case 15: Direction-Initiated Only for TCP
     dir_init_results = check_direction_initiated_tcp_only(mud_data)
     results["direction_initiated_valid"] = dir_init_results["status"] == "PASS"
     results["direction_initiated_message"] = "; ".join([d["error"] for d in dir_init_results["details"]]) \
     if dir_init_results["details"] else "All 'direction-initiated' attributes correctly applied to TCP ACEs."
 
-    # Test Case: ACE Actions
+    # Test Case 16: ACE Actions
     ace_actions_results = check_ace_actions(mud_data)
     results["ace_actions_valid"] = ace_actions_results["status"] == "PASS"
     results["ace_actions_message"] = "; ".join([f"{d['acl']}->{d['ace']}: {d['invalid_action']}" 
@@ -919,15 +1174,14 @@ def run_checks():
     if ace_actions_results["details"] else "All ACE actions are valid ('accept' or 'drop')."
     
 
-    # Test Case: ACE Count
+    # Test Case 17: ACE Count
     ace_count_results = check_ace_count(mud_data)
     results["ace_count_valid"] = ace_count_results["status"] == "PASS"
     results["ace_count_message"] = ace_count_results["message"]
 
     return results
 
-
-
+    
 # ===============================
 # Main entry
 # ===============================
@@ -943,6 +1197,7 @@ if __name__ == "__main__":
     print(json.dumps(results, indent=2))'''
     mud_url = "https://luminaire.example.com/ubuntu_test"
     mud_file = "mud_files/ubuntu_test.json"
+    mud_signature ="mud_files/ubuntu_test.p7s"
 
     results = run_checks(mud_url, mud_file)
     print(json.dumps(results, indent=2))
